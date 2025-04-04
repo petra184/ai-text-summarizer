@@ -16,11 +16,11 @@ class SummarizationModel:
 
     def get_length(self, option):
         if option == "short":
-            return 30, 100 
+            return 30, 200 
         elif option == "medium":
-            return 100, 250 
+            return 200, 450 
         else:
-            return 250, 500 
+            return 450, 1000 
     
     def extractive(self, text, option):
         if not text or len(text.split()) < 20:
@@ -30,9 +30,9 @@ class SummarizationModel:
             summary_output = self.bert_model.get_summary(text, "long")
 
             if option=="short":
-                top_n = 5
+                top_n = 3
             elif option=="medium":
-                top_n = 9
+                top_n = 7
             else:
                 top_n = 15
                 
@@ -51,13 +51,10 @@ class SummarizationModel:
         if not text or len(text.split()) < 20:
             return "Text is too short to summarize it."
         try:
-            if len(text) > 10000:
-                text = text[:10000] + "..."
-
             input_ids = self.bart_tokenizer.encode(
                 text, 
                 return_tensors="pt", 
-                max_length=1024,  # BART allows larger input size than T5
+                max_length=1024,
                 truncation=True
             ).to(self.device)
             

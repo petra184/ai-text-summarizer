@@ -7,7 +7,7 @@ from bs4 import BeautifulSoup
 import re
 from urllib.parse import urlparse
 from summary_ai import *
-
+import re
 app = Flask(__name__, template_folder='templates', static_folder='static')
 CORS(app)
 
@@ -54,6 +54,7 @@ def summarize():
         if file.filename == "":
             return jsonify({"error": "No selected file"}), 400
         try:
+            print(file)
             text = pdf_to_text(file)
         except Exception as e:
             return jsonify({"error": str(e)}), 500
@@ -78,7 +79,8 @@ def summarize():
         if summary_type == "extractive":
             summary = model.extractive(text, summary_length)
         else:
-            summary = model.abstractive(text, summary_length)
+            clean_text = cleaning_text(text)
+            summary = model.abstractive(clean_text, summary_length)
         
         return jsonify({"summary": summary})
     
@@ -88,16 +90,18 @@ def summarize():
 
 
 def pdf_to_text(file) -> str:
-    file_stream = BytesIO(file.read())
-    reader = PdfReader(file_stream)
-
-    all_text = ""
-    for page in reader.pages:
-        page_text = page.extract_text() or ""
-        all_text += page_text.replace("\n", " ")
-
-    clean_text = " ".join(all_text.split())
-    return clean_text
+    try:
+        file_stream = BytesIO(file.read())
+        reader = PdfReader(file_stream)
+        all_text = ""
+        for page in reader.pages:
+            page_text = page.extract_text() or ""
+            all_text += page_text.replace("\n", " ")
+        clean_text = " ".join(all_text.split())
+        return clean_text
+    except Exception as e:
+        print(f"PDF parsing error: {e}")
+        raise
 
 def url_to_text(url) -> str:
     headers = {
@@ -120,6 +124,29 @@ def url_to_text(url) -> str:
     
     text = re.sub(r'\s+', ' ', text).strip()
     return text
+
+def cleaning_text(text):
+    patterns = [
+        r"(?i)click here to.*", 
+        r"(?i)read more.*",     
+        r"(?i)subscribe.*",    
+        r"(?i)follow us.*",
+        r"(?i)Source.*",
+        r"(?i)Visit.*",
+        r"(?i)www.*",          
+        r"(?i)advertisement",   
+        r"\b\d{1,2}:\d{2}\s*(AM|PM)?\b",  
+        r"\[[^\]]*\]",          
+        r"http\S+",            
+        r"\s{2,}",              
+        r"(?i)Ad.*",
+        r"(?i)Feedback.*",  
+    ]
+    
+    for pattern in patterns:
+        text = re.sub(pattern, '', text)
+
+    return text.strip()
 
 if __name__ == '__main__':
     app.run(debug=True)

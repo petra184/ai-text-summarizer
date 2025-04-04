@@ -210,6 +210,24 @@ h1 {
   transition: opacity 0.2s ease;
 }
 
+.remove-file-button {
+  position: absolute;
+  top: 0.25rem;
+  right: 0.25rem;
+  color: var(--color-red-500);
+  border: none;
+  font-size: 1.1rem;
+  font-weight: 600;
+  background-color: transparent;
+  cursor: pointer;
+  z-index: 10;
+}
+
+.remove-file-button:hover {
+  font-size: 1.4rem;
+  font-weight: 700;
+}
+
 .upload-button:hover {
   opacity: 0.9;
 }
@@ -227,6 +245,7 @@ input[type="file"] {
   color: var(--color-emerald-600);
   border-radius: 9999px;
   font-size: 0.8rem;
+  position: relative;
 }
 
 .file-name svg {

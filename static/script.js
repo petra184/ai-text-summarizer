@@ -24,6 +24,20 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 })
 
+function removeFile() {
+  const fileInput = document.getElementById("file-upload")
+  const fileNameDisplay = document.getElementById("file-name")
+  const uploadedFileNameText = document.getElementById("uploaded-file-name")
+  const removeButton = document.getElementById("remove-file-button")
+
+  fileInput.value = ""
+  fileNameDisplay.classList.add("hidden")
+  uploadedFileNameText.textContent = ""
+  removeButton.classList.add("hidden")
+  document.querySelector(".upload-button").classList.remove("hidden")
+}
+
+
 // Switch between tabs
 function switchTab(tab) {
   activeTab = tab
@@ -50,6 +64,7 @@ function handleFileUpload(event) {
   document.getElementById("file-name").classList.remove("hidden")
 
   document.querySelector(".upload-button").classList.add("hidden")
+  document.getElementById("remove-file-button").classList.remove("hidden");
 }
 
 // Validate URL

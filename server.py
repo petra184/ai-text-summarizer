@@ -1,47 +1,51 @@
-from flask import Flask, send_from_directory, request, jsonify
+from flask import Flask, render_template, request, jsonify
 from flask_cors import CORS
-import os
+from PyPDF2 import PdfReader
+from io import BytesIO
 
-app = Flask(__name__)
-CORS(app)  # Enable CORS if accessing from a different origin
-UPLOAD_FOLDER = "uploads"
-os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+app = Flask(__name__, template_folder='templates', static_folder='static')
+CORS(app)
 
-
-# Serve index.html from the root directory
+# Serve index.html
 @app.route('/')
 def serve_index():
-    return send_from_directory('', 'index.html')
+    return render_template('index.html')
 
-# Serve static files (CSS, JS)
-@app.route('/<path:filename>')
-
-def serve_static(filename):
-    return send_from_directory('', filename)
-
+# Summarize route
+@app.route('/summarize', methods=['POST'])
 def summarize():
+    summary_type = request.form.get("type", "not provided")
+    summary_length = request.form.get("length", "not provided")
+
     if "file" in request.files:
         file = request.files["file"]
         if file.filename == "":
             return jsonify({"error": "No selected file"}), 400
-        
-        file_path = os.path.join(UPLOAD_FOLDER, file.filename)
-        file.save(file_path)
-
-        # Process the file (Extract text from PDF, DOCX, etc. - implement logic here)
-        summary = f"Summarized content from {file.filename}"
+        try:
+            text = pdf_to_text(file)
+            return jsonify({"summary": f"{text}"})
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
 
     elif "text" in request.form:
         text_content = request.form["text"]
-        summary = f"Summarized text: {text_content[:100]}..."  # Example
+        return jsonify({"summary": f"{text_content}"})
 
     else:
         return jsonify({"error": "No text or file provided"}), 400
 
-    return jsonify({"summary": summary})
+def pdf_to_text(file) -> str:
+    file_stream = BytesIO(file.read())
+    reader = PdfReader(file_stream)
 
+    all_text = ""
+    for page in reader.pages:
+        page_text = page.extract_text() or ""
+        all_text += page_text.replace("\n", " ")
 
+    clean_text = " ".join(all_text.split())  # remove extra whitespace
+    return clean_text
     
+
 if __name__ == '__main__':
     app.run(debug=True)
-

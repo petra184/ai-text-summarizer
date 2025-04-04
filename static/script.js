@@ -39,68 +39,79 @@ function handleFileUpload(event) {
   const file = event.target.files[0];
   if (!file) return;
 
-  uploadedFileName = file.name;
-
-  // Show the file name
-  document.getElementById("uploaded-file-name").textContent = uploadedFileName;
+  document.getElementById("uploaded-file-name").textContent = file.name;
   document.getElementById("file-name").classList.remove("hidden");
 
-  // Hide the "Choose a file" button
   document.querySelector(".upload-button").classList.add("hidden");
-
-  console.log(`File uploaded: ${uploadedFileName}`);
 }
 
 
 
 // Summarize the text
 async function summarizeText() {
-  let textToSummarize = ""
+  let formData = new FormData();
 
-  if (activeTab === "text") {
-    textToSummarize = document.getElementById("text-content").value.trim()
+  const fileInput = document.getElementById("file-upload");
+  const file = fileInput.files[0];
+
+  const textContent = document.getElementById("text-content").value.trim();
+
+  // Priority: If a file is uploaded, use that. Otherwise, fall back to text input.
+  if (file) {
+    formData.append("file", file);
+    let documentTitle = file.name.split('.')[0]
+    document.getElementById("doc-title").textContent = documentTitle;
+  } else if (textContent) {
+    let words = textContent.split(/\s+/);
+    let documentTitle = words.slice(0, 3).join(" ");
+    
+    // If there are more than 3 words, add "..."
+    if (words.length > 3) {
+      documentTitle += " ...";
+    }
+    document.getElementById("doc-title").textContent = documentTitle;
+
+    formData.append("text", textContent);
   } else {
-    textToSummarize = uploadedFileName
+    alert("Please enter text or upload a document first.");
+    return;
   }
 
-  if (!textToSummarize) {
-    alert("Please enter text or upload a document first.")
-    return
-  }
-
-  setLoading(true)
+  setLoading(true);
 
   try {
     // Get the selected options
     const summaryType = document.getElementById("summary-type").value;
     const summaryLength = document.getElementById("summary-length").value;
 
-    // Send the text to Python backend
+    // Append settings to FormData
+    formData.append("type", summaryType);
+    formData.append("length", summaryLength);
+
+    // Send the data to Python backend
     const response = await fetch("http://127.0.0.1:5000/summarize", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ 
-        text: textToSummarize,
-        type: summaryType,
-        length: summaryLength
-      })
-    })
+      body: formData,
+    });
 
-    const data = await response.json()
+    const data = await response.json();
 
-    // Display the summary
-    document.getElementById("summary-content").textContent = data.summary
-    document.getElementById("summary-result").classList.remove("hidden")
-
-    // Scroll to the summary
-    document.getElementById("summary-result").scrollIntoView({ behavior: "smooth" })
+    if (data.summary) {
+      document.getElementById("summary-content").textContent = data.summary;
+      document.getElementById("summary-result").classList.remove("hidden");
+      document.getElementById("summary-result").scrollIntoView({ behavior: "smooth" });
+    } else {
+      alert("No summary returned from the server.");
+    }
   } catch (error) {
-    console.error("Error summarizing text:", error)
-    alert("An error occurred while summarizing the text. Please try again.")
+    console.error("Error summarizing:", error);
+    alert("An error occurred while summarizing. Please try again.");
   } finally {
-    setLoading(false)
+    setLoading(false);
   }
 }
+
+
 
 // Set loading state
 function setLoading(loading) {

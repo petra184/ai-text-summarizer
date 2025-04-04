@@ -31,8 +31,7 @@ source venv/bin/activate
 
 ### 3. Install Dependencies
 ```bash
-pip install flask flask-cors PyPDF2 requests beautifulsoup4 torch transformers bert-extractive-summarizer
-
+pip install flask flask-cors PyPDF2 requests beautifulsoup4 torch transformers bert-extractive-summarizer pycryptodome
 ```
 
 ### 4. Navigate into the Project Directory and Run the Server

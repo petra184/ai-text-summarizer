@@ -154,10 +154,10 @@ async function summarizeText() {
     }
 
     const words = textContent.split(/\s+/)
-    let documentTitle = words.slice(0, 3).join(" ")
+    let documentTitle = words.slice(0, 2).join(" ")
 
     // If there are more than 3 words, add "..."
-    if (words.length > 3) {
+    if (words.length > 2) {
       documentTitle += " ..."
     }
     document.getElementById("doc-title").textContent = documentTitle
@@ -206,7 +206,8 @@ async function summarizeText() {
       document.getElementById("summary-content").textContent = data.summary
       document.getElementById("summary-result").classList.remove("hidden")
       document.getElementById("summary-result").scrollIntoView({ behavior: "smooth" })
-    } else {
+    } 
+    else {
       alert("No summary returned from the server.")
     }
   } catch (error) {
@@ -236,4 +237,3 @@ function setLoading(loading) {
     loadingIcon.classList.add("hidden")
   }
 }
-

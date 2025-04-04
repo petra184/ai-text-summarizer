@@ -6,16 +6,15 @@ import requests
 from bs4 import BeautifulSoup
 import re
 from urllib.parse import urlparse
+from summary_ai import *
 
 app = Flask(__name__, template_folder='templates', static_folder='static')
 CORS(app)
 
-# Serve index.html
 @app.route('/')
 def serve_index():
     return render_template('index.html')
 
-# Validate URL route
 @app.route('/validate-url', methods=['POST'])
 def validate_url():
     data = request.json
@@ -24,7 +23,6 @@ def validate_url():
     if not url:
         return jsonify({"valid": False, "message": "No URL provided"})
     
-    # Check if URL has a valid format
     try:
         result = urlparse(url)
         if not all([result.scheme, result.netloc]):
@@ -32,22 +30,20 @@ def validate_url():
     except:
         return jsonify({"valid": False, "message": "Invalid URL format"})
     
-    # Check if URL is accessible
     try:
         headers = {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
         }
         response = requests.head(url, timeout=5, headers=headers)
         
-        # Check if response is successful
         if response.status_code >= 400:
             return jsonify({"valid": False, "message": f"URL returned status code {response.status_code}"})
         
         return jsonify({"valid": True})
-    except requests.exceptions.RequestException as e:
-        return jsonify({"valid": False, "message": f"Could not access URL: {str(e)}"})
+    except requests.exceptions.RequestException:
+        return jsonify({"valid": False, "message": f"Could not access URL"})
 
-# Summarize route
+
 @app.route('/summarize', methods=['POST'])
 def summarize():
     summary_type = request.form.get("type", "extractive")
@@ -59,27 +55,37 @@ def summarize():
             return jsonify({"error": "No selected file"}), 400
         try:
             text = pdf_to_text(file)
-            # In a real implementation, you would pass this text to your AI model
-            return jsonify({"summary": {text}})
         except Exception as e:
             return jsonify({"error": str(e)}), 500
 
     elif "text" in request.form:
         text = request.form["text"]
-        # In a real implementation, you would pass this text to your AI model
-        return jsonify({"summary": text})
 
     elif "url" in request.form:
         url = request.form["url"]
         try:
-            text = extract_text_from_url(url)
-            # In a real implementation, you would pass this text to your AI model
-            return jsonify({"summary": text})
+            text = url_to_text(url)
         except Exception as e:
             return jsonify({"error": str(e)}), 500
-
     else:
         return jsonify({"error": "No text, file, or URL provided"}), 400
+    
+    if len(text.split()) < 20:
+        return jsonify({"error": "Text is too short to summarize it."}), 400
+    
+    try:
+        model = get_model()
+        if summary_type == "extractive":
+            summary = model.extractive(text, summary_length)
+        else:
+            summary = model.abstractive(text, summary_length)
+        
+        return jsonify({"summary": summary})
+    
+    except Exception as e:
+        print(f"Summary generation failed: {e}")
+        return jsonify({"error": f"Error generating summary: {str(e)}"}), 500
+
 
 def pdf_to_text(file) -> str:
     file_stream = BytesIO(file.read())
@@ -90,39 +96,29 @@ def pdf_to_text(file) -> str:
         page_text = page.extract_text() or ""
         all_text += page_text.replace("\n", " ")
 
-    clean_text = " ".join(all_text.split())  # remove extra whitespace
+    clean_text = " ".join(all_text.split())
     return clean_text
 
-def extract_text_from_url(url) -> str:
+def url_to_text(url) -> str:
     headers = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
     }
     
     response = requests.get(url, headers=headers, timeout=10)
-    response.raise_for_status()  # Raise an exception for HTTP errors
+    response.raise_for_status()  # exception for HTTP errors
     
-    # Parse the HTML content
-    soup = BeautifulSoup(response.text, 'html.parser')
+    # Parsing  HTML content
+    parsing = BeautifulSoup(response.text, 'html.parser')
     
-    # Remove script and style elements
-    for script in soup(["script", "style", "header", "footer", "nav"]):
+    for script in parsing(["script", "style", "header", "footer", "nav"]):
         script.extract()
     
-    # Get text
-    text = soup.get_text()
-    
-    # Break into lines and remove leading and trailing space on each
+    text = parsing.get_text()
     lines = (line.strip() for line in text.splitlines())
-    
-    # Break multi-headlines into a line each
     chunks = (phrase.strip() for line in lines for phrase in line.split("  "))
-    
-    # Remove blank lines
     text = '\n'.join(chunk for chunk in chunks if chunk)
     
-    # Clean up text - remove extra whitespace
     text = re.sub(r'\s+', ' ', text).strip()
-    
     return text
 
 if __name__ == '__main__':

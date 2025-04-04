@@ -52,10 +52,10 @@
                 Choose a file
               </label>
               <input id="file-upload" type="file" accept=".txt,.doc,.docx,.pdf" onchange="handleFileUpload(event)">
-              
-              <div id="file-name" class="file-name hidden">
+              <div id="file-name" class="file-name hidden relative">
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
                 <span id="uploaded-file-name"></span>
+              <!-- fix this  <button id="remove-file-button" class="remove-file-button hidden" onclick="removeFile()">X</button> -->
               </div>
             </div>
           </div>

@@ -50,11 +50,16 @@
     }
     
     h1 {
-      font-size: 2rem;
-      font-weight: 700;
-      margin-bottom: 0.75rem;
-      line-height: 1.2;
-      color: var(--color-gray-800);
+      font-family: 'Poppins', sans-serif; /* Keep Poppins for a modern look */
+      font-weight: 700; /* Makes the title bold and prominent */
+      font-size: 2.5rem; /* Larger font size for better impact */
+      line-height: 1.2; /* Ensures the title doesn’t look too cramped */
+      text-transform: uppercase; /* Makes the title all uppercase for a stronger appearance */
+      letter-spacing: 1px; /* Slightly spaced letters for a cleaner look */
+      color: var(--color-gray-800); /* Dark gray color for readability */
+      text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1); /* Adds a subtle shadow for depth */
+      margin-bottom: 1.25rem; /* Keeps spacing below the title */
+      text-align: center; /* Ensures the title is centered */
     }
     
     @media (min-width: 768px) {

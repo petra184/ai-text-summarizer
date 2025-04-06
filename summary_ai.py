@@ -1,6 +1,10 @@
 import torch
 from transformers import BartTokenizer, BartForConditionalGeneration
 from summarizer import Summarizer
+from sumy.parsers.plaintext import PlaintextParser
+from sumy.nlp.tokenizers import Tokenizer
+from sumy.summarizers.lex_rank import LexRankSummarizer
+
 
 class SummarizationModel:
     def __init__(self, device="cuda" if torch.cuda.is_available() else "cpu"):
@@ -25,39 +29,45 @@ class SummarizationModel:
     def extractive(self, text, option):
         if not text or len(text.split()) < 20:
             return "Text is too short to summarize it."
-
         try:
-            summary_output = self.bert_model.get_summary(text, "long")
-
-            if option=="short":
-                top_n = 3
-            elif option=="medium":
-                top_n = 7
+            # Choose number of sentences based on option
+            if option == "short":
+                sent_count = 3
+            elif option == "medium":
+                sent_count = 5
             else:
-                top_n = 15
-                
-            summary_output = sorted(summary_output, key=lambda x: x['total_score'], reverse=True)[:top_n]
+                sent_count = 10
 
-            summary_output = sorted(summary_output, key=lambda x: x['order'])
-            summary_sentences = [item['sentence'] for item in summary_output]
-            return "\n".join(summary_sentences)
+            # Parse and summarize using LexRank
+            parser = PlaintextParser.from_string(text, Tokenizer("english"))
+            summarizer = LexRankSummarizer()
+            summary = summarizer(parser.document, sentences_count=sent_count)
+
+            # Join summarized sentences
+            return "\n".join(str(sentence) for sentence in summary)
 
         except Exception as e:
             return f"Error generating summary: {str(e)}"
 
     def abstractive(self, text, option):
         min_length, max_length = self.get_length(option)
-        
+
         if not text or len(text.split()) < 20:
             return "Text is too short to summarize it."
+
         try:
+            extractive_summary = self.extractive(text, option)
+
+            if not extractive_summary or len(extractive_summary.split()) < 20:
+                return "Text is too short after extraction to generate an abstractive summary."
+
             input_ids = self.bart_tokenizer.encode(
-                text, 
+                extractive_summary, 
                 return_tensors="pt", 
                 max_length=1024,
                 truncation=True
             ).to(self.device)
-            
+
             summary_ids = self.bart_model.generate(
                 input_ids,
                 max_length=max_length,
@@ -66,11 +76,14 @@ class SummarizationModel:
                 num_beams=4,
                 early_stopping=True
             )
-            
+
             return self.bart_tokenizer.decode(summary_ids[0], skip_special_tokens=True)
+        
         except Exception as e:
             print(f"Error in abstractive summarization: {str(e)}")
             return f"Error generating summary: {str(e)}"
+
+
 
 # Create a singleton instance
 _model_instance = None

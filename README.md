@@ -31,7 +31,7 @@ source venv/bin/activate
 
 ### 3. Install Dependencies
 ```bash
-pip install flask flask-cors PyPDF2 requests beautifulsoup4 torch transformers bert-extractive-summarizer pycryptodome newspaper3k lxml_html_clean
+pip install flask flask-cors pdfplumber requests beautifulsoup4 torch transformers bert-extractive-summarizer pycryptodome newspaper3k lxml_html_clean
 
 ```
 

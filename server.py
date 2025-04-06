@@ -8,6 +8,8 @@ import re
 from urllib.parse import urlparse
 from summary_ai import *
 import re
+from newspaper import Article
+
 app = Flask(__name__, template_folder='templates', static_folder='static')
 CORS(app)
 
@@ -76,10 +78,10 @@ def summarize():
     
     try:
         model = get_model()
+        clean_text = cleaning_text(text)
         if summary_type == "extractive":
-            summary = model.extractive(text, summary_length)
+            summary = model.extractive(clean_text, summary_length)
         else:
-            clean_text = cleaning_text(text)
             summary = model.abstractive(clean_text, summary_length)
         
         return jsonify({"summary": summary})
@@ -104,49 +106,41 @@ def pdf_to_text(file) -> str:
         raise
 
 def url_to_text(url) -> str:
-    headers = {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-    }
-    
-    response = requests.get(url, headers=headers, timeout=10)
-    response.raise_for_status()  # exception for HTTP errors
-    
-    # Parsing  HTML content
-    parsing = BeautifulSoup(response.text, 'html.parser')
-    
-    for script in parsing(["script", "style", "header", "footer", "nav"]):
-        script.extract()
-    
-    text = parsing.get_text()
-    lines = (line.strip() for line in text.splitlines())
-    chunks = (phrase.strip() for line in lines for phrase in line.split("  "))
-    text = '\n'.join(chunk for chunk in chunks if chunk)
-    
-    text = re.sub(r'\s+', ' ', text).strip()
-    return text
+    article = Article(url)
+    article.download()
+    article.parse()
+    return article.text
 
 def cleaning_text(text):
+    # Remove email captures, social handles, etc.
     patterns = [
-        r"(?i)click here to.*", 
-        r"(?i)read more.*",     
-        r"(?i)subscribe.*",    
+        r"(?i)click here.*",
+        r"(?i)read more.*",
+        r"(?i)subscribe.*",
         r"(?i)follow us.*",
-        r"(?i)Source.*",
-        r"(?i)Visit.*",
-        r"(?i)www.*",          
-        r"(?i)advertisement",   
-        r"\b\d{1,2}:\d{2}\s*(AM|PM)?\b",  
-        r"\[[^\]]*\]",          
-        r"http\S+",            
-        r"\s{2,}",              
-        r"(?i)Ad.*",
-        r"(?i)Feedback.*",  
+        r"(?i)advertisement.*",
+        r"(?:^|\s)(Ad|Sponsored|Promoted)(?:\s|$)",
+        r"\b\d{1,2}:\d{2}\s*(AM|PM)?\b",
+        r"\[[^\]]*\]",
+        r"http\S+",
+        r"\s{2,}",
+        r"(?i)feedback.*",
+        r"(?i)cookie policy.*",
+        r"(?i)terms of service.*",
+        r"(?i)privacy policy.*",
+        r"(?i)newsletter.*",
+        r"(?i)login.*",
+        r"(?i)signup.*",
+        r"(?i)view comments.*",
+        r"(?i)related articles.*",
+        r"(?i)image credit.*"
     ]
-    
+
     for pattern in patterns:
         text = re.sub(pattern, '', text)
 
-    return text.strip()
+    return re.sub(r'\s+', ' ', text).strip()
+
 
 if __name__ == '__main__':
     app.run(debug=True)

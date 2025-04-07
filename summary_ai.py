@@ -4,7 +4,7 @@ from summarizer import Summarizer
 from sumy.parsers.plaintext import PlaintextParser
 from sumy.nlp.tokenizers import Tokenizer
 from sumy.summarizers.lex_rank import LexRankSummarizer
-
+from nltk.tokenize import sent_tokenize
 
 class SummarizationModel:
     def __init__(self, device="cuda" if torch.cuda.is_available() else "cpu"):
@@ -30,32 +30,43 @@ class SummarizationModel:
         if not text or len(text.split()) < 20:
             return "Text is too short to summarize it."
         try:
-            # Choose number of sentences based on option
-            if option == "short":
-                sent_count = 3
-            elif option == "medium":
-                sent_count = 5
-            else:
-                sent_count = 10
+            cleaned_text = text.replace('.', '. ')
+            cleaned_text = ' '.join(cleaned_text.split())
 
-            # Parse and summarize using LexRank
-            parser = PlaintextParser.from_string(text, Tokenizer("english"))
+            sentences = sent_tokenize(cleaned_text)
+            print(f"Original sentence count: {len(sentences)}")
+
+            if option == "short":
+                sent_count = 2
+            elif option == "medium":
+                sent_count = 6
+            else:
+                sent_count = 8
+
+            parser = PlaintextParser.from_string(cleaned_text, Tokenizer("english"))
             summarizer = LexRankSummarizer()
             summary = summarizer(parser.document, sentences_count=sent_count)
 
-            # Join summarized sentences
+            print(f"Final sentence count: {len(summary)}, {sentences}")
+
             return "\n".join(str(sentence) for sentence in summary)
 
         except Exception as e:
             return f"Error generating summary: {str(e)}"
 
-    def abstractive(self, text, option):
-        min_length, max_length = self.get_length(option)
 
+    def abstractive(self, text, option):
         if not text or len(text.split()) < 20:
             return "Text is too short to summarize it."
 
-        try:
+        try:            
+            if option == "short":
+                min_length, max_length = 30, 200 
+            elif option == "medium":
+                min_length, max_length = 200, 450 
+            else:
+                min_length, max_length = 450, 1000 
+            
             extractive_summary = self.extractive(text, option)
 
             if not extractive_summary or len(extractive_summary.split()) < 20:

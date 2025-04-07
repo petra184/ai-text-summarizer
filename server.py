@@ -99,7 +99,21 @@ def pdf_to_text(file) -> str:
         for page in reader.pages:
             page_text = page.extract_text() or ""
             all_text += page_text.replace("\n", " ")
+
+        # Normalize spaces
         clean_text = " ".join(all_text.split())
+
+        # Add a space after sentence-ending punctuation if it's missing
+        clean_text = re.sub(r'(?<=[a-zA-Z])\.(?=[A-Z])', '. ', clean_text)
+        clean_text = re.sub(r'(?<=[a-zA-Z])\?(?=[A-Z])', '? ', clean_text)
+        clean_text = re.sub(r'(?<=[a-zA-Z])\!(?=[A-Z])', '! ', clean_text)
+
+        # Remove ALL CAPS fragments that are likely titles or headers
+        clean_text = re.sub(r'\b[A-Z\s]{5,}\b', '', clean_text)
+
+        # Remove leftover extra spaces again
+        clean_text = re.sub(r'\s{2,}', ' ', clean_text).strip()
+
         return clean_text
     except Exception as e:
         print(f"PDF parsing error: {e}")
@@ -130,6 +144,7 @@ def cleaning_text(text):
         r"(?i)privacy policy.*",
         r"(?i)newsletter.*",
         r"(?i)login.*",
+        r"(?i)wwww.*",
         r"(?i)signup.*",
         r"(?i)view comments.*",
         r"(?i)related articles.*",

@@ -3,7 +3,6 @@ from flask_cors import CORS
 from PyPDF2 import PdfReader
 from io import BytesIO
 import requests
-from bs4 import BeautifulSoup
 import re
 from urllib.parse import urlparse
 from summary_ai import *
@@ -56,7 +55,6 @@ def summarize():
         if file.filename == "":
             return jsonify({"error": "No selected file"}), 400
         try:
-            print(file)
             text = pdf_to_text(file)
         except Exception as e:
             return jsonify({"error": str(e)}), 500
@@ -100,18 +98,15 @@ def pdf_to_text(file) -> str:
             page_text = page.extract_text() or ""
             all_text += page_text.replace("\n", " ")
 
-        # Normalize spaces
         clean_text = " ".join(all_text.split())
-
-        # Add a space after sentence-ending punctuation if it's missing
         clean_text = re.sub(r'(?<=[a-zA-Z])\.(?=[A-Z])', '. ', clean_text)
         clean_text = re.sub(r'(?<=[a-zA-Z])\?(?=[A-Z])', '? ', clean_text)
         clean_text = re.sub(r'(?<=[a-zA-Z])\!(?=[A-Z])', '! ', clean_text)
 
-        # Remove ALL CAPS fragments that are likely titles or headers
+        # no CAPS
         clean_text = re.sub(r'\b[A-Z\s]{5,}\b', '', clean_text)
 
-        # Remove leftover extra spaces again
+        # no leftover extra spaces
         clean_text = re.sub(r'\s{2,}', ' ', clean_text).strip()
 
         return clean_text
@@ -126,7 +121,6 @@ def url_to_text(url) -> str:
     return article.text
 
 def cleaning_text(text):
-    # Remove email captures, social handles, etc.
     patterns = [
         r"(?i)click here.*",
         r"(?i)read more.*",

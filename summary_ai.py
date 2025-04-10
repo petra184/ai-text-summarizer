@@ -4,17 +4,13 @@ from summarizer import Summarizer
 from sumy.parsers.plaintext import PlaintextParser
 from sumy.nlp.tokenizers import Tokenizer
 from sumy.summarizers.lex_rank import LexRankSummarizer
-from nltk.tokenize import sent_tokenize
 
 class SummarizationModel:
     def __init__(self, device="cuda" if torch.cuda.is_available() else "cpu"):
         self.device = device
         print(f"Initializing summarization model on {self.device}")
         
-        # Initialize BERT model for extractive summarization
         self.bert_model = Summarizer()
-                
-        # Load BART tokenizer and model
         self.bart_tokenizer = BartTokenizer.from_pretrained("facebook/bart-large-cnn")
         self.bart_model = BartForConditionalGeneration.from_pretrained("facebook/bart-large-cnn").to(self.device)
 
@@ -33,9 +29,6 @@ class SummarizationModel:
             cleaned_text = text.replace('.', '. ')
             cleaned_text = ' '.join(cleaned_text.split())
 
-            sentences = sent_tokenize(cleaned_text)
-            print(f"Original sentence count: {len(sentences)}")
-
             if option == "short":
                 sent_count = 2
             elif option == "medium":
@@ -46,9 +39,6 @@ class SummarizationModel:
             parser = PlaintextParser.from_string(cleaned_text, Tokenizer("english"))
             summarizer = LexRankSummarizer()
             summary = summarizer(parser.document, sentences_count=sent_count)
-
-            print(f"Final sentence count: {len(summary)}, {sentences}")
-
             return "\n".join(str(sentence) for sentence in summary)
 
         except Exception as e:
@@ -61,11 +51,11 @@ class SummarizationModel:
 
         try:            
             if option == "short":
-                min_length, max_length = 30, 200 
+                min_length, max_length = 70, 300 
             elif option == "medium":
-                min_length, max_length = 200, 450 
+                min_length, max_length = 300, 550 
             else:
-                min_length, max_length = 450, 1000 
+                min_length, max_length = 550, 1000 
             
             extractive_summary = self.extractive(text, option)
 
@@ -95,8 +85,6 @@ class SummarizationModel:
             return f"Error generating summary: {str(e)}"
 
 
-
-# Create a singleton instance
 _model_instance = None
 
 def get_model():

@@ -252,6 +252,16 @@ input[type="file"] {
   margin-right: 0.3rem;
 }
 
+.remove-button {
+  background: transparent;
+  border: none;
+  color: #ff4d4f;
+  font-size: 17px;
+  margin-left: 8px;
+  cursor: pointer;
+}
+
+
 /* URL Input Styles */
 .url-input-container {
   padding: 1.5rem;
